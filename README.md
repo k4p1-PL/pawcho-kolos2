@@ -17,4 +17,4 @@
 * **Format:** Obraz tagowany jest podwójnie przy każdym poprawnym procesie CI:
   * `latest` - znacznik ruchomy, nadpisywany przy każdym commicie.
   * `${{ github.sha }}` - znacznik niezmienny (immutable), oparty o sumę kontrolną commita w Git.
-* **Uzasadnienie:** Użycie podwójnego tagowania to standard w inżynierii DevOps. Tag `latest` służy wygodzie (np. dla szybkiego testowania uruchomieniowego najnowszej wersji). Natomiast tag oparty na SHA commita gwarantuje **identyfikowalność (traceability)** i niezmienność. Umożliwia to precyzyjne określenie, z jakiej wersji kodu źródłowego powstał dany obraz kontenera, co jest kluczowe w debugowaniu i wycofywaniu zmian na środowiskach produkcyjnych.
+* **Uzasadnienie:** Użycie podwójnego tagowania to standard w inżynierii DevOps. Tag `latest` służy wygodzie (np. dla szybkiego testowania uruchomieniowego najnowszej wersji). Natomiast tag oparty na SHA commita gwarantuje **identyfikowalność (traceability)** i niezmienność. Umozliwia to precyzyjne określenie, z jakiej wersji kodu źródłowego powstał dany obraz kontenera, co jest kluczowe w debugowaniu i wycofywaniu zmian na środowiskach produkcyjnych.
