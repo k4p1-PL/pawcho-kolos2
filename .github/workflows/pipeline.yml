@@ -1,0 +1,77 @@
+name: Build, Scan and Push Pipeline
+
+# Uruchomienie łańcucha po wysłaniu kodu na gałąź main
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  # Nazwa obrazu na ghcr.io to nazwa Twojego repo (pisana małymi literami!)
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # Uprawnienie wymagane do wysyłki na ghcr.io
+
+    steps:
+      - name: Pobranie kodu repozytorium
+        uses: actions/checkout@v4
+
+      - name: Konfiguracja QEMU (dla architektury ARM)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Konfiguracja Docker Buildx (Cache i Multi-arch)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Logowanie do DockerHub (na potrzeby cache)
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Logowanie do GHCR (GitHub Container Registry)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # Token generuje się automatycznie
+
+      - name: KROK 1 - Budowa lokalnego obrazu do skanowania (Test CVE)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true # Ładuje obraz do lokalnego demona Docker (wymagane dla Trivy)
+          tags: local-test-image:latest
+          # Pobieramy cache, aby ten krok trwał ułamek sekundy
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/paco-cache:buildcache
+
+      - name: KROK 2 - Skanowanie obrazu narzędziem Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local-test-image:latest'
+          format: 'table'
+          # Jeśli znajdzie błędy CRITICAL lub HIGH, zwraca exit code 1 i przerywa cały pipeline!
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: KROK 3 - Właściwa budowa (Multi-arch) i wysyłka na GHCR
+        # Uruchomi się TYLKO jeśli skanowanie Trivy zakończy się sukcesem
+        if: success()
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          # Zgodnie z zadaniem: odczyt i zapis (mode=max) w dedykowanym repo DockerHub
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/paco-cache:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/paco-cache:buildcache,mode=max
