@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Nazwa obrazu na ghcr.io to nazwa Twojego repo (pisana małymi literami!)
+  # Nazwa obrazu na ghcr.io 
   IMAGE_NAME: k4p1-pl/pawcho-kolos2
 
 jobs:
