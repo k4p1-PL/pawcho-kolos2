@@ -1,6 +1,5 @@
 name: Build, Scan and Push Pipeline
 
-# Uruchomienie łańcucha po wysłaniu kodu na gałąź main
 on:
   push:
     branches:
@@ -8,7 +7,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Nazwa obrazu na ghcr.io 
   IMAGE_NAME: k4p1-pl/pawcho-kolos2
 
 jobs:
@@ -16,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write # Uprawnienie wymagane do wysyłki na ghcr.io
+      packages: write
 
     steps:
       - name: Pobranie kodu repozytorium
@@ -28,7 +26,7 @@ jobs:
       - name: Konfiguracja Docker Buildx (Cache i Multi-arch)
         uses: docker/setup-buildx-action@v3
 
-      - name: Logowanie do DockerHub (na potrzeby cache)
+      - name: Logowanie do DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -39,15 +37,14 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # Token generuje się automatycznie
+          password: ${{ secrets.GITHUB_TOKEN }} 
 
       - name: KROK 1 - Budowa lokalnego obrazu do skanowania (Test CVE)
         uses: docker/build-push-action@v5
         with:
           context: .
-          load: true # Ładuje obraz do lokalnego demona Docker (wymagane dla Trivy)
+          load: true 
           tags: local-test-image:latest
-          # Pobieramy cache, aby ten krok trwał ułamek sekundy
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/paco-cache:buildcache
 
       - name: KROK 2 - Skanowanie obrazu narzędziem Trivy
@@ -55,14 +52,12 @@ jobs:
         with:
           image-ref: 'local-test-image:latest'
           format: 'table'
-          # Jeśli znajdzie błędy CRITICAL lub HIGH, zwraca exit code 1 i przerywa cały pipeline!
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
       - name: KROK 3 - Właściwa budowa (Multi-arch) i wysyłka na GHCR
-        # Uruchomi się TYLKO jeśli skanowanie Trivy zakończy się sukcesem
         if: success()
         uses: docker/build-push-action@v5
         with:
@@ -72,6 +67,5 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          # Zgodnie z zadaniem: odczyt i zapis (mode=max) w dedykowanym repo DockerHub
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/paco-cache:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/paco-cache:buildcache,mode=max
