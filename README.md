@@ -7,7 +7,7 @@
 3. **Test CVE:** Uruchamia skaner **Trivy**. Został on wybrany jako narzędzie optymalne dla środowisk CI/CD, ponieważ natywnie wspiera blokowanie procesu (`exit-code: '1'`) w przypadku wykrycia podatności `CRITICAL` lub `HIGH`.
 4. Jeśli test zostanie zaliczony pomyślnie, obraz jest budowany na obydwie architektury i wysyłany do GitHub Container Registry (ghcr.io).
 
-## System tagowania i przechowywania Cache (Z Uzasadnieniem)
+## System tagowania i przechowywania Cache
 
 ### 1. Tagowanie danych Cache
 * **Format:** `[dockerhub-user]/paco-cache:buildcache`
