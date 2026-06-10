@@ -12,14 +12,12 @@ import (
 	"time"
 )
 
-// Struktura na dane z darmowego API Open-Meteo
 type WeatherResponse struct {
 	CurrentWeather struct {
 		Temperature float64 `json:"temperature"`
 	} `json:"current_weather"`
 }
 
-// Mapa predefiniowanych miast (Kraj - Miasto)
 var cities = map[string]string{
 	"Warszawa (Polska)":  "latitude=52.2297&longitude=21.0122",
 	"Paryż (Francja)":    "latitude=48.8566&longitude=2.3522",
